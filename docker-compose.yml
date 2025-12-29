@@ -1,0 +1,70 @@
+services:
+  # PostgreSQL сервис
+  postgres:
+    image: postgres:16-alpine
+    container_name: itk-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-myuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mypassword}
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # Go приложение
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: rest
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    volumes:
+    - ./.env:/app/.env:ro
+    environment:
+      APP_PORT: ${APP_PORT:-8080}
+      
+      # Переменные окружения для подключения к PostgreSQL
+      DB_HOST: postgres  # имя сервиса в docker-compose
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DB_NAME: ${POSTGRES_DB:-myapp}
+      DB_SSLMODE: disable
+      
+      # Настройки подключения
+      DB_MAX_CONNS: 20
+      DB_MIN_CONNS: 5
+      DB_MAX_CONN_LIFETIME: 1h
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+    # Для разработки с hot reload (опционально)
+    # volumes:
+    #   - .:/app
+    # command: air -c .air.toml
+
+# Сети
+networks:
+  app-network:
+    driver: bridge
+
+# Тома
+volumes:
+  postgres_data:
+    name: myapp_postgres_data

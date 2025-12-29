@@ -1,0 +1,9 @@
+# [LevelDebug = -4 LevelInfo = 0 LevelWarn = 4 LevelError = 8]
+# mb Env? [ "local" "dev" "prod" ]
+Logger:
+  Level: 0
+
+GRPCServer:
+  Address: "0.0.0.0:8090"
+  MaxReceiveMsgSize: 8000000
+  MaxSendMsgSize: 32000000
