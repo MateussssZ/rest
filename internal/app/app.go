@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"sync"
+	"time"
 
 	"rest/config"
 	"rest/internal/pkg/appLogger"
@@ -16,7 +18,8 @@ type AppDep struct {
 }
 
 type App struct {
-	srv *Server
+	srv        *Server
+	registries *Registries
 }
 
 func NewApp(ctx context.Context, dep AppDep) (*App, error) {
@@ -58,13 +61,29 @@ func NewApp(ctx context.Context, dep AppDep) (*App, error) {
 }
 
 func (a *App) Start(ctx context.Context, wg *sync.WaitGroup) error {
-	var err error
+	errChan := make(chan error)
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err = a.srv.Start(ctx)
+		err := a.srv.Start(ctx)
+		if err != nil {
+			err = fmt.Errorf("server Started - error: %w", err)
+			errChan <- err
+		}
 	}()
 
-	return err
+	select {
+	case err := <-errChan:
+		return err
+	case <-time.After(3 * time.Second):
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (a *App) Stop(ctx context.Context) {
+	a.srv.Stop(ctx)
+	a.registries.Postgres.Stop()
 }

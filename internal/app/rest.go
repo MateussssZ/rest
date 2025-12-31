@@ -14,7 +14,6 @@ import (
 )
 
 type ServerDep struct {
-	Ctx    context.Context      `valid:"required"`
 	Ctrls  *Controllers         `valid:"required"`
 	Config *config.Config       `valid:"required"`
 	Logger appLogger.IAppLogger `valid:"required"`
@@ -30,7 +29,6 @@ type webHandlers struct {
 }
 
 type InitHandlersDep struct {
-	ctx    context.Context      `valid:"required"`
 	Logger appLogger.IAppLogger `valid:"required"`
 	Ctrls  *Controllers         `valid:"required"`
 }
@@ -41,7 +39,6 @@ func NewServer(dep ServerDep) (*Server, error) {
 	}
 
 	handlersDep := &InitHandlersDep{
-		ctx:    dep.Ctx,
 		Logger: dep.Logger,
 		Ctrls:  dep.Ctrls,
 	}
@@ -60,7 +57,7 @@ func NewServer(dep ServerDep) (*Server, error) {
 	}
 
 	server := &http.Server{
-		Addr:         fmt.Sprintf("%s:%d", "0.0.0.0", dep.Config.Port), // TODO add host to .env
+		Addr:         fmt.Sprintf("%s:%d", "0.0.0.0", dep.Config.Port),
 		Handler:      router,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,

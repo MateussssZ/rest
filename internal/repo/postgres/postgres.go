@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"rest/config"
+	errorsPkg "rest/internal/pkg/errorspkg"
 	"rest/internal/repo/models"
 
 	"github.com/jackc/pgx/v5"
@@ -25,6 +27,7 @@ type postgres struct {
 type PostgresI interface {
 	GetWalletByID(ctx context.Context, walletID string) (*models.Wallet, error)
 	MakeTransaction(ctx context.Context, walletID, operation string, amount float64) error
+	Stop()
 }
 
 func New(ctx context.Context, dep PostgresDeps) (PostgresI, error) {
@@ -78,9 +81,9 @@ func (p *postgres) GetWalletByID(ctx context.Context, walletID string) (*models.
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("wallet not found")
+			return nil, errorsPkg.NewWalletNotFoundError(walletID)
 		}
-		return nil, fmt.Errorf("failed to get wallet: %w", err)
+		return nil, errorsPkg.NewDatabaseError(err)
 	}
 
 	return &wallet, nil
@@ -88,7 +91,7 @@ func (p *postgres) GetWalletByID(ctx context.Context, walletID string) (*models.
 
 func (db *postgres) MakeTransaction(ctx context.Context, walletID, operation string, amount float64) error {
 	opts := pgx.TxOptions{
-		IsoLevel:   pgx.Serializable,
+		IsoLevel:   pgx.RepeatableRead,
 		AccessMode: pgx.ReadWrite,
 	}
 	var currentBalance float64
@@ -102,20 +105,23 @@ func (db *postgres) MakeTransaction(ctx context.Context, walletID, operation str
 
 	tx, err := db.pool.BeginTx(ctx, opts)
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		return errorsPkg.NewDatabaseError(err)
 	}
 	defer tx.Rollback(ctx)
 
 	err = tx.QueryRow(ctx, walletQuery, walletID).Scan(&currentBalance, &status)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return fmt.Errorf("wallet not found")
+			return errorsPkg.NewWalletNotFoundError(walletID)
 		}
-		return fmt.Errorf("failed to get wallet: %w", err)
+		return errorsPkg.NewDatabaseError(err)
 	}
 
 	if status != "ACTIVE" {
-		return fmt.Errorf("wallet is not active (current status: %s)", status)
+		return &errorsPkg.AppError{
+			Status: http.StatusForbidden,
+			Err:    fmt.Errorf("wallet is not active (current status: %s)", status),
+		}
 	}
 
 	var newBalance float64
@@ -125,15 +131,13 @@ func (db *postgres) MakeTransaction(ctx context.Context, walletID, operation str
 		newBalance = currentBalance + amount
 	case models.OperationWithdraw:
 		if currentBalance < amount {
-			return fmt.Errorf("insufficient funds: available %.2f, requested %.2f",
-				currentBalance, amount)
+			return errorsPkg.NewInsufficientFundsError(currentBalance, amount)
 		}
 		newBalance = currentBalance - amount
 	default:
-		return fmt.Errorf("invalid operation type: %s", operation)
+		return errorsPkg.NewBadRequestError(fmt.Errorf("invalid operation type: %s", operation))
 	}
 
-	// 4. Обновляем баланс кошелька
 	updateQuery := `
 			UPDATE wallets
 			SET balance = $1
@@ -142,21 +146,26 @@ func (db *postgres) MakeTransaction(ctx context.Context, walletID, operation str
 
 	updateResult, err := tx.Exec(ctx, updateQuery, newBalance, walletID)
 	if err != nil {
-		// Проверяем constraint violation
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23514" { // check_violation
-			return fmt.Errorf("balance cannot be negative")
+			return errorsPkg.NewInsufficientFundsError(currentBalance, amount)
 		}
-		return fmt.Errorf("failed to update wallet: %w", err)
+		return errorsPkg.NewDatabaseError(err)
 	}
 
 	if updateResult.RowsAffected() == 0 {
-		return fmt.Errorf("wallet update failed")
+		return errorsPkg.NewDatabaseError(err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return errorsPkg.NewDatabaseError(err)
 	}
 
 	return nil
+}
+
+func (db *postgres) Stop() {
+	if db.pool != nil {
+		db.pool.Close()
+	}
 }

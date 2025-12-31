@@ -15,7 +15,7 @@ type customHandler struct {
 	colors  bool
 }
 
-func newCustomHandler(w io.Writer, level slog.Level, colors bool) slog.Handler { // TODO доделать хэндлер
+func newCustomHandler(w io.Writer, level slog.Level, colors bool) slog.Handler {
 	return &customHandler{
 		writer: w,
 		level:  level,

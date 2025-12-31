@@ -43,6 +43,7 @@ func main() {
 
 	logger.Info(ctx, "Application has been started!")
 	<-ctx.Done()
+	application.Stop(ctx)
 	logger.Info(ctx, "Please wait, services are stopping...Chill around 30 seconds")
 	wg.Wait()
 	logger.Info(ctx, "Application is stopped correctly. The force will be with you")

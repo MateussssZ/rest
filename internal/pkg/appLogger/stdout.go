@@ -13,7 +13,7 @@ type stdoutWriter struct {
 }
 
 func newStdoutWriter(level slog.Level) *stdoutWriter {
-	handler := newCustomHandler(os.Stdout,level,true)
+	handler := newCustomHandler(os.Stdout, level, true)
 
 	return &stdoutWriter{logger: slog.New(handler)}
 }

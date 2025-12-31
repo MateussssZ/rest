@@ -22,7 +22,6 @@ func NewRepo(ctx context.Context, dep *RepoDep) (*Registries, error) {
 		return nil, err
 	}
 
-	// инициализации конекшенов ко всем используемым БД
 	deps := postgres.PostgresDeps{
 		Conf: &dep.Conf,
 	}

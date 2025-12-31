@@ -39,7 +39,7 @@ func (u *WalletCtrl) GetWallet(ctx context.Context, walletUUID string) (*ucmodel
 		return nil, err
 	}
 
-	return wallet, err
+	return wallet, nil
 }
 
 func (u *WalletCtrl) WalletOperation(ctx context.Context, op ucmodels.TransactionRequest) error {

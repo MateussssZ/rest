@@ -43,65 +43,64 @@ func NewWalletHandler(dep *WalletHandlerDeps) (*WalletHandler, error) {
 
 func (h *WalletHandler) GetWallet(w http.ResponseWriter, r *http.Request) {
 	logger := h.logger
-	handlerName := "GetWallet"
 	ctx := r.Context()
 
 	vars := mux.Vars(r)
 	walletUUID, ok := vars["WALLET_UUID"]
 	if !ok {
-		logger.Error(r.Context(), errorspkg.ErrWalletUUIDIsMissed, "handlerName", handlerName)
-		httputils.WriteError(ctx, w, logger, http.StatusInternalServerError, errorspkg.ErrWalletUUIDIsMissed)
+		logger.Error(ctx, errorspkg.ErrWalletUUIDIsMissed)
+		httputils.WriteError(ctx, w, logger, errorspkg.ErrWalletUUIDIsMissed)
 		return
 	}
 
 	ucWallet, err := h.walletCtrl.GetWallet(ctx, walletUUID)
 	if err != nil {
-		logger.Error(r.Context(), err, "handlerName", handlerName)
-		httputils.WriteError(ctx, w, logger, http.StatusInternalServerError, err)
+		logger.Error(ctx, err)
+		httputils.WriteError(ctx, w, logger, err)
 		return
 	}
 
 	response := converts.WalletUsecase2Handler(ucWallet)
-	httputils.WriteJSON(r.Context(), w, h.logger, response)
+	httputils.WriteJSON(ctx, w, h.logger, response)
 }
 
 func (h *WalletHandler) WalletOperation(w http.ResponseWriter, r *http.Request) {
 	logger := h.logger
-	handlerName := "WalletOperation"
 	ctx := r.Context()
 
 	var req hndlrmodels.TransactionRequest
+	defer r.Body.Close()
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		logger.Error(r.Context(), err, "handlerName", handlerName)
-		httputils.WriteError(ctx, w, logger, http.StatusInternalServerError, err)
+		logger.Error(ctx, err)
+		httputils.WriteError(ctx, w, logger, err)
 		return
 	}
 
 	if err = json.Unmarshal(body, &req); err != nil {
-		logger.Error(r.Context(), err, "handlerName", handlerName)
-		httputils.WriteError(ctx, w, logger, http.StatusInternalServerError, err)
+		logger.Error(ctx, err)
+		httputils.WriteError(ctx, w, logger, err)
 		return
 	}
 
 	if req.OperationType != "DEPOSIT" && req.OperationType != "WITHDRAW" {
-		logger.Error(r.Context(), errorspkg.ErrWrongOperationType, "handlerName", handlerName)
-		httputils.WriteError(ctx, w, logger, http.StatusInternalServerError, errorspkg.ErrWrongOperationType)
+		logger.Error(ctx, errorspkg.ErrWrongOperationType)
+		httputils.WriteError(ctx, w, logger, errorspkg.ErrWrongOperationType)
 		return
 	}
 
 	if req.Amount <= 0 {
-		logger.Error(r.Context(), errorspkg.ErrWrongAmount, "handlerName", handlerName)
-		httputils.WriteError(ctx, w, logger, http.StatusInternalServerError, errorspkg.ErrWrongAmount)
+		logger.Error(ctx, errorspkg.ErrWrongAmount)
+		httputils.WriteError(ctx, w, logger, errorspkg.ErrWrongAmount)
 		return
 	}
 
 	err = h.walletCtrl.WalletOperation(r.Context(), converts.WalletOperationHandler2Usecase(req))
 	if err != nil {
-		logger.Error(r.Context(), err, "handlerName", handlerName)
-		httputils.WriteError(ctx, w, logger, http.StatusInternalServerError, err)
+		logger.Error(ctx, err)
+		httputils.WriteError(ctx, w, logger, err)
 		return
 	}
 
-	httputils.WriteJSON(r.Context(), w, h.logger, "ok")
+	httputils.WriteJSON(ctx, w, h.logger, "ok")
 }

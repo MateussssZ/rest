@@ -3,8 +3,10 @@ package rest
 import (
 	"net/http"
 	"rest/internal/api/web/handlers"
+	"rest/internal/api/web/middlewares"
 
 	"github.com/asaskevich/govalidator"
+	gorillahandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
@@ -20,11 +22,16 @@ func NewRoutes(dep *RouteDeps) (*mux.Router, error) {
 
 	r := mux.NewRouter()
 
+	r.Use(gorillahandlers.RecoveryHandler(
+		gorillahandlers.PrintRecoveryStack(true),
+	))
+	r.Use(middlewares.RequestIDMiddleware)
+
 	r.Handle("/health", dep.Health)
 	v1 := r.PathPrefix("/api/v1").Subrouter()
 
 	v1.HandleFunc("/wallet", dep.WalletHandler.WalletOperation).Methods(http.MethodPost)
-	v1.HandleFunc("/wallets/{WALLET_UUID}", dep.WalletHandler.GetWallet).Methods(http.MethodGet)
+	v1.HandleFunc("/wallet/{WALLET_UUID}", dep.WalletHandler.GetWallet).Methods(http.MethodGet)
 
 	return r, nil
 }
