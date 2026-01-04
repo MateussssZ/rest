@@ -45,7 +45,7 @@ func (h *WalletHandler) GetWallet(w http.ResponseWriter, r *http.Request) {
 	logger := h.logger
 	ctx := r.Context()
 
-	vars := mux.Vars(r)
+	vars := mux.Vars(r) // Проверяем переменную пути, если её нет - отслыаем bad request клиенту 
 	walletUUID, ok := vars["WALLET_UUID"]
 	if !ok {
 		logger.Error(ctx, errorspkg.ErrWalletUUIDIsMissed)
@@ -53,14 +53,14 @@ func (h *WalletHandler) GetWallet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ucWallet, err := h.walletCtrl.GetWallet(ctx, walletUUID)
+	ucWallet, err := h.walletCtrl.GetWallet(ctx, walletUUID) // Передаём данные в слой контроллера
 	if err != nil {
 		logger.Error(ctx, err)
 		httputils.WriteError(ctx, w, logger, err)
 		return
 	}
 
-	response := converts.WalletUsecase2Handler(ucWallet)
+	response := converts.WalletUsecase2Handler(ucWallet) // Конвертируем usecase-структуру в нужную клиенту структуру
 	httputils.WriteJSON(ctx, w, h.logger, response)
 }
 
@@ -68,7 +68,7 @@ func (h *WalletHandler) WalletOperation(w http.ResponseWriter, r *http.Request) 
 	logger := h.logger
 	ctx := r.Context()
 
-	var req hndlrmodels.TransactionRequest
+	var req hndlrmodels.TransactionRequest // Читаем данные из body запроса
 	defer r.Body.Close()
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -83,24 +83,24 @@ func (h *WalletHandler) WalletOperation(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if req.OperationType != "DEPOSIT" && req.OperationType != "WITHDRAW" {
+	if req.OperationType != "DEPOSIT" && req.OperationType != "WITHDRAW" { // Проверка корректности запроса
 		logger.Error(ctx, errorspkg.ErrWrongOperationType)
 		httputils.WriteError(ctx, w, logger, errorspkg.ErrWrongOperationType)
 		return
 	}
 
-	if req.Amount <= 0 {
+	if req.Amount <= 0 {	// Проверка корректности запроса
 		logger.Error(ctx, errorspkg.ErrWrongAmount)
 		httputils.WriteError(ctx, w, logger, errorspkg.ErrWrongAmount)
 		return
 	}
 
-	err = h.walletCtrl.WalletOperation(r.Context(), converts.WalletOperationHandler2Usecase(req))
+	err = h.walletCtrl.WalletOperation(r.Context(), converts.WalletOperationHandler2Usecase(req)) // Передаём данные в слой контроллера
 	if err != nil {
 		logger.Error(ctx, err)
 		httputils.WriteError(ctx, w, logger, err)
 		return
 	}
 
-	httputils.WriteJSON(ctx, w, h.logger, "ok")
+	httputils.WriteJSON(ctx, w, h.logger, "ok") // Если ошибок нет - отсылаем пользователю статус 200, говоря об успешном выполнении запроса
 }

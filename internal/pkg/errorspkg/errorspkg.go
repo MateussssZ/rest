@@ -7,12 +7,12 @@ import (
 )
 
 var (
-	ErrWalletUUIDIsMissed = errors.New("wallet uuid is missed")
-	ErrWrongOperationType = errors.New("wrong operation type param")
-	ErrWrongAmount        = errors.New("wrong amount param(must be positive)")
+	ErrWalletUUIDIsMissed = errors.New("wallet uuid is missed") // отсутствует uuid кошелька в запросе
+	ErrWrongOperationType = errors.New("wrong operation type param") // неправильный тип операции
+	ErrWrongAmount        = errors.New("wrong amount param(must be positive)") // отрицательная сумма для операции по кошельку
 )
 
-type AppError struct {
+type AppError struct { // наша кастомная ошибка, в которой будет храниться и ошибка, и заранее подобранный к ней статус, также она соответствует интерфейсу error
 	Status    int    `json:"-"`
 	Err       error  `json:"err"`
 	RequestID string `json:"request_id,omitempty"`

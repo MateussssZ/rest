@@ -34,7 +34,7 @@ func NewWalletController(dep *WalletCtrlDep) (*WalletCtrl, error) {
 func (u *WalletCtrl) GetWallet(ctx context.Context, walletUUID string) (*ucmodels.Wallet, error) {
 	// Здесь в будущем будет логика проверки токенов и прочего, но пока пусто :)
 
-	wallet, err := u.walletUsecase.GetWallet(ctx, walletUUID)
+	wallet, err := u.walletUsecase.GetWallet(ctx, walletUUID) // пока такой логики нет - просто передаём запрос дальше в слой usecases
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (u *WalletCtrl) GetWallet(ctx context.Context, walletUUID string) (*ucmodel
 func (u *WalletCtrl) WalletOperation(ctx context.Context, op ucmodels.TransactionRequest) error {
 	// Здесь в будущем будет логика проверки токенов и прочего, но пока пусто :)
 
-	err := u.walletUsecase.WalletOperation(ctx, op)
+	err := u.walletUsecase.WalletOperation(ctx, op) // пока такой логики нет - просто передаём запрос дальше в слой usecases
 	if err != nil {
 		return err
 	}

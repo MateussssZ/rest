@@ -16,13 +16,13 @@ type Postgres struct {
 }
 
 type Config struct {
-	Postgres    Postgres `mapstructure:",squash"`
-	Port        int      `mapstructure:"APP_PORT"`
-	LoggerLevel int      `mapstructure:"LOGGER_LEVEL"`
+	Postgres    Postgres `mapstructure:",squash" valid:"required"`
+	Port        int      `mapstructure:"APP_PORT" valid:"required"`
+	LoggerLevel int      `mapstructure:"LOGGER_LEVEL" valid:"required"`
 }
 
 func NewConfig() (*Config, error) {
-	viper.SetConfigFile(_defaultConfigPath)
+	viper.SetConfigFile(_defaultConfigPath) // Читаем из конфиг файла по тегам mapstructure в структуру
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func NewConfig() (*Config, error) {
 		return nil, err
 	}
 
-	_, err := govalidator.ValidateStruct(conf)
+	_, err := govalidator.ValidateStruct(conf) //проверяем, все ли поля в структуре
 	if err != nil {
 		return nil, err
 	}

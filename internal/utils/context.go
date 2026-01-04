@@ -11,7 +11,7 @@ const (
 	CtxRequestMethod = "method"
 )
 
-func ExtractAttrs(ctx context.Context) []any {
+func ExtractAttrs(ctx context.Context) []any { // функция извлекает необходимые поля из контекста для обогащения ошибок в логах
 	var attrs []any
 	if v, ok := ctx.Value(CtxRequestID).(string); ok {
 		attrs = append(attrs, CtxRequestID, v)

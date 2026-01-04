@@ -14,7 +14,7 @@ func RequestIDMiddleware(next http.Handler) http.Handler {
 			requestID = uuid.New().String()
 		}
 
-		ctx := context.WithValue(r.Context(), "XRequestID", requestID)
+		ctx := context.WithValue(r.Context(), "XRequestID", requestID) // Обогащаем контекст
 		ctx = context.WithValue(ctx, "url", r.URL)
 		ctx = context.WithValue(ctx, "method", r.Method)
 

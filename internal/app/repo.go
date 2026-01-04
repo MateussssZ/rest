@@ -25,8 +25,8 @@ func NewRepo(ctx context.Context, dep *RepoDep) (*Registries, error) {
 	deps := postgres.PostgresDeps{
 		Conf: &dep.Conf,
 	}
-	postgresRegistry, err := postgres.New(ctx, deps)
-	if err != nil {
+	postgresRegistry, err := postgres.New(ctx, deps) // Инициализируем соединение с postgres-базой в другом контейнере
+	if err != nil {									// (в структуре Registries может быть сколько угодно реализаций различных БД, которые нам нужны)
 		return nil, err
 	}
 

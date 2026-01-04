@@ -42,7 +42,7 @@ func NewServer(dep ServerDep) (*Server, error) {
 		Logger: dep.Logger,
 		Ctrls:  dep.Ctrls,
 	}
-	handlers, err := initHandlers(handlersDep)
+	handlers, err := initHandlers(handlersDep) // инициализируем функции-обработчики поступающих запросов
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func NewServer(dep ServerDep) (*Server, error) {
 		Health:        handlers.Health,
 		WalletHandler: handlers.walletHandler,
 	}
-	router, err := rest.NewRoutes(routesDep)
+	router, err := rest.NewRoutes(routesDep) // инициализируем роутер для нашего сервера
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func NewServer(dep ServerDep) (*Server, error) {
 	}, nil
 }
 
-func (s *Server) Start(ctx context.Context) error {
+func (s *Server) Start(ctx context.Context) error { // Запуск http-слушателя у сервера
 	stop := make(chan error, 1)
 
 	go func() {
@@ -98,7 +98,7 @@ func initHandlers(dep *InitHandlersDep) (*webHandlers, error) {
 		return nil, err
 	}
 
-	return &webHandlers{
+	return &webHandlers{ // обработчики для кошельков и эндпоинта проверки состояния сервера
 		Health:        handlers.InitHandlerHealth(),
 		walletHandler: wallet,
 	}, nil

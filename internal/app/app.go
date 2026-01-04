@@ -23,30 +23,30 @@ type App struct {
 }
 
 func NewApp(ctx context.Context, dep AppDep) (*App, error) {
-	if _, err := govalidator.ValidateStruct(dep); err != nil {
+	if _, err := govalidator.ValidateStruct(dep); err != nil { // Проверяем, все ли зависимости мы передали
 		return nil, err
 	}
 
-	registries, err := NewRepo(ctx, &RepoDep{dep.Config.Postgres})
+	registries, err := NewRepo(ctx, &RepoDep{dep.Config.Postgres}) // Инициализируем слой репозитория
 	if err != nil {
 		return nil, err
 	}
 
-	usecases, err := NewUsecases(UsecasesDep{
+	usecases, err := NewUsecases(UsecasesDep{ // Инициализируем слой usecase
 		Repo: registries,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	controllers, err := NewControllers(ControllersDep{
+	controllers, err := NewControllers(ControllersDep{ // Инициализируем слой контроллеров
 		Usecases: usecases,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	srv, err := NewServer(ServerDep{
+	srv, err := NewServer(ServerDep{ // Инициализируем http-сервер с путями и middlewares 
 		Ctrls:  controllers,
 		Config: dep.Config,
 		Logger: dep.Logger,
@@ -60,7 +60,7 @@ func NewApp(ctx context.Context, dep AppDep) (*App, error) {
 	}, nil
 }
 
-func (a *App) Start(ctx context.Context, wg *sync.WaitGroup) error {
+func (a *App) Start(ctx context.Context, wg *sync.WaitGroup) error { // Запуск http-сервера
 	errChan := make(chan error)
 
 	wg.Add(1)
@@ -73,7 +73,7 @@ func (a *App) Start(ctx context.Context, wg *sync.WaitGroup) error {
 		}
 	}()
 
-	select {
+	select { // Ждём 3 секунды до поднятия сервера. Если за эти 3 секунды не пришла ошибка и не отменился контекст - запуск прошёл успешно
 	case err := <-errChan:
 		return err
 	case <-time.After(3 * time.Second):
@@ -83,7 +83,7 @@ func (a *App) Start(ctx context.Context, wg *sync.WaitGroup) error {
 	}
 }
 
-func (a *App) Stop(ctx context.Context) {
+func (a *App) Stop(ctx context.Context) { // Graceful shutdown
 	a.srv.Stop(ctx)
 	a.registries.Postgres.Stop()
 }

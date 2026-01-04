@@ -17,13 +17,13 @@ type errorStruct struct {
 func WriteJSON(ctx context.Context, w http.ResponseWriter, logger appLogger.IAppLogger, body interface{}) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
-	jsonBody, err := json.Marshal(body)
+	jsonBody, err := json.Marshal(body) // упаковываем body в байты
 	if err != nil {
 
 		logger.Error(ctx, fmt.Errorf("json.Marshal in response error: %w", err))
 	}
 
-	_, err = w.Write(jsonBody)
+	_, err = w.Write(jsonBody) // отправляем наши байты
 	if err != nil {
 		logger.Error(ctx, fmt.Errorf("w.Write in response error: %w", err))
 	}
@@ -36,7 +36,7 @@ func WriteError(ctx context.Context, w http.ResponseWriter, logger appLogger.IAp
 		responseErr.Message = err.Error()
 	}
 
-	response, err := json.Marshal(responseErr)
+	response, err := json.Marshal(responseErr) // упаковываем body в байты
 	if err != nil {
 		logger.Error(ctx, fmt.Errorf("writeError error: %w", err))
 		return
@@ -44,7 +44,7 @@ func WriteError(ctx context.Context, w http.ResponseWriter, logger appLogger.IAp
 
 	w.Header().Set("Content-Type", "application/json")
 	statusCode := determineStatusCode(err)
-	w.WriteHeader(statusCode)
+	w.WriteHeader(statusCode) // устанавливаем статус-код и отправляем наши байты
 	_, err = w.Write(response)
 	if err != nil {
 		logger.Error(ctx, fmt.Errorf("writeError error: %w", err))
@@ -52,7 +52,7 @@ func WriteError(ctx context.Context, w http.ResponseWriter, logger appLogger.IAp
 	}
 }
 
-func determineStatusCode(err error) int {
+func determineStatusCode(err error) int { // определяем, какой статус отослать, исходя из ошибки
 	var appErr *errorspkg.AppError
 	switch {
 	case errors.Is(err, errorspkg.ErrWrongOperationType), errors.Is(err, errorspkg.ErrWrongAmount), errors.Is(err, errorspkg.ErrWalletUUIDIsMissed):

@@ -23,7 +23,7 @@ func NewControllers(dep ControllersDep) (*Controllers, error) {
 		WalletUsecase: dep.Usecases.Wallet,
 	}
 
-	wallet, err := controllers.NewWalletController(walletDeps)
+	wallet, err := controllers.NewWalletController(walletDeps) // Инициализируем контроллер для кошельков(в будущем при появлении других сущностей у нас будут появляться другие контроллеры)
 	if err != nil {
 		return nil, err
 	}

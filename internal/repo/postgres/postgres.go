@@ -34,7 +34,7 @@ func New(ctx context.Context, dep PostgresDeps) (PostgresI, error) {
 	connStr := fmt.Sprintf(
 		"postgres://%s:%s@%s:%d/%s",
 		dep.Conf.User, dep.Conf.Password, dep.Conf.Host, dep.Conf.Port, dep.Conf.Database,
-	)
+	) // путь для подключения к postgres
 
 	config, err := pgxpool.ParseConfig(connStr)
 	if err != nil {
@@ -47,13 +47,12 @@ func New(ctx context.Context, dep PostgresDeps) (PostgresI, error) {
 	config.MaxConnIdleTime = 30 * time.Minute
 	config.HealthCheckPeriod = time.Minute
 
-	// Подключение
-	pool, err := pgxpool.NewWithConfig(ctx, config)
+	pool, err := pgxpool.NewWithConfig(ctx, config) // Подключение с пулом соединений
 	if err != nil {
 		return nil, err
 	}
 
-	if err := pool.Ping(ctx); err != nil {
+	if err := pool.Ping(ctx); err != nil { // проверка подключения
 		pool.Close()
 		return nil, err
 	}
@@ -71,7 +70,7 @@ func (p *postgres) GetWalletByID(ctx context.Context, walletID string) (*models.
 		WHERE id = $1
 	`
 
-	err := p.pool.QueryRow(ctx, query, walletID).Scan(
+	err := p.pool.QueryRow(ctx, query, walletID).Scan( // отправляем атомарный запрос, никакие блокировки не нужны
 		&wallet.ID,
 		&wallet.Balance,
 		&wallet.Status,
@@ -103,13 +102,13 @@ func (db *postgres) MakeTransaction(ctx context.Context, walletID, operation str
 			FOR UPDATE
 	`
 
-	tx, err := db.pool.BeginTx(ctx, opts)
+	tx, err := db.pool.BeginTx(ctx, opts) //начинаем транзакцию, чтобы избежать несогласованности данных
 	if err != nil {
 		return errorsPkg.NewDatabaseError(err)
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) // откатываемся в случае ошибок и всего прочего(если ошибки не будет, rollback перекроется функцией tx.Commit)
 
-	err = tx.QueryRow(ctx, walletQuery, walletID).Scan(&currentBalance, &status)
+	err = tx.QueryRow(ctx, walletQuery, walletID).Scan(&currentBalance, &status) // командой select for update блокируем нужные нам поля, пока не закончим транзакцию
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errorsPkg.NewWalletNotFoundError(walletID)
@@ -117,7 +116,7 @@ func (db *postgres) MakeTransaction(ctx context.Context, walletID, operation str
 		return errorsPkg.NewDatabaseError(err)
 	}
 
-	if status != "ACTIVE" {
+	if status != "ACTIVE" { // проверка состояния кошелька
 		return &errorsPkg.AppError{
 			Status: http.StatusForbidden,
 			Err:    fmt.Errorf("wallet is not active (current status: %s)", status),
@@ -126,7 +125,7 @@ func (db *postgres) MakeTransaction(ctx context.Context, walletID, operation str
 
 	var newBalance float64
 
-	switch models.OperationType(operation) {
+	switch models.OperationType(operation) { // логика подсчёта новой суммы
 	case models.OperationDeposit:
 		newBalance = currentBalance + amount
 	case models.OperationWithdraw:
@@ -144,20 +143,20 @@ func (db *postgres) MakeTransaction(ctx context.Context, walletID, operation str
 			WHERE id = $2
 		`
 
-	updateResult, err := tx.Exec(ctx, updateQuery, newBalance, walletID)
+	updateResult, err := tx.Exec(ctx, updateQuery, newBalance, walletID) // обновляем наш баланс на кошельке и проверяем, всё ли в порядке
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23514" { // check_violation
+		if errors.As(err, &pgErr) && pgErr.Code == "23514" { // проверяем constraints
 			return errorsPkg.NewInsufficientFundsError(currentBalance, amount)
 		}
 		return errorsPkg.NewDatabaseError(err)
 	}
 
-	if updateResult.RowsAffected() == 0 {
+	if updateResult.RowsAffected() == 0 { 
 		return errorsPkg.NewDatabaseError(err)
 	}
 
-	if err := tx.Commit(ctx); err != nil {
+	if err := tx.Commit(ctx); err != nil { // завершаем транзакцию, если всё в порядке
 		return errorsPkg.NewDatabaseError(err)
 	}
 

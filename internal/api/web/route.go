@@ -22,16 +22,16 @@ func NewRoutes(dep *RouteDeps) (*mux.Router, error) {
 
 	r := mux.NewRouter()
 
-	r.Use(gorillahandlers.RecoveryHandler(
+	r.Use(gorillahandlers.RecoveryHandler(  // Перехватчик паники
 		gorillahandlers.PrintRecoveryStack(true),
 	))
-	r.Use(middlewares.RequestIDMiddleware)
+	r.Use(middlewares.RequestIDMiddleware) // middleware-обогатитель контекста запроса
 
-	r.Handle("/health", dep.Health)
+	r.Handle("/health", dep.Health) // эндпоинт проверки состояния сервера
 	v1 := r.PathPrefix("/api/v1").Subrouter()
 
-	v1.HandleFunc("/wallet", dep.WalletHandler.WalletOperation).Methods(http.MethodPost)
-	v1.HandleFunc("/wallet/{WALLET_UUID}", dep.WalletHandler.GetWallet).Methods(http.MethodGet)
+	v1.HandleFunc("/wallet", dep.WalletHandler.WalletOperation).Methods(http.MethodPost) // эндпоинт действий с кошельком
+	v1.HandleFunc("/wallet/{WALLET_UUID}", dep.WalletHandler.GetWallet).Methods(http.MethodGet) // эндпоинт получения кошелька
 
 	return r, nil
 }

@@ -22,7 +22,7 @@ func NewUsecases(dep UsecasesDep) (*Usecases, error) {
 	walletDeps := &usecases.WalletUsecaseDep{
 		Repo: dep.Repo.Postgres,
 	}
-	wallet, err := usecases.NewWalletUsecase(walletDeps)
+	wallet, err := usecases.NewWalletUsecase(walletDeps) // Инициализируем usecase для кошельков(в будущем при появлении других сущностей у нас будут появляться другие usecase`ы)
 	if err != nil {
 		return nil, err
 	}

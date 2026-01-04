@@ -33,19 +33,19 @@ func NewWalletUsecase(dep *WalletUsecaseDep) (*WalletUsecase, error) {
 }
 
 func (u *WalletUsecase) GetWallet(ctx context.Context, walletUUID string) (*ucmodels.Wallet, error) {
-	wallet, err := u.repo.GetWalletByID(ctx, walletUUID)
+	wallet, err := u.repo.GetWalletByID(ctx, walletUUID) // обращаемся к repo-слою
 	if err != nil {
 		return nil, err
 	}
 
-	return converts.WalletRepoToUsecase(wallet), err
+	return converts.WalletRepoToUsecase(wallet), err // http-обработчики не должны иметь никакой связи с repo, поэтому конвертируем repo-структуры в usecase-структуры для изоляции
 }
 
 func (u *WalletUsecase) WalletOperation(ctx context.Context, operation ucmodels.TransactionRequest) error {
-	err := u.repo.MakeTransaction(ctx, operation.WalletID, operation.OperationType, operation.Amount)
+	err := u.repo.MakeTransaction(ctx, operation.WalletID, operation.OperationType, operation.Amount) // обращаемся к repo-слою
 	if err != nil {
 		return err
 	}
 
-	return nil
+	return nil // конвертировать нечего, поэтому просто сообщаем контроллерам, что ошибок нет
 }
